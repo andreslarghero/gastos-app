@@ -29,6 +29,7 @@ async function requireAuth(req, res, next) {
     req.user = data.user;
     return next();
   } catch (err) {
+    console.error("requireAuth error:", err);
     return res.status(500).json({
       ok: false,
       error: "Error inesperado del servidor.",
@@ -187,6 +188,87 @@ app.post("/expenses", requireAuth, async (req, res) => {
   }
 });
 
+app.put("/expenses/:id", requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ ok: false, error: "ID de gasto inválido." });
+    }
+
+    const { amount, category, description } = req.body ?? {};
+
+    const parsedAmount =
+      typeof amount === "number"
+        ? amount
+        : typeof amount === "string"
+          ? Number(amount)
+          : NaN;
+
+    if (!Number.isFinite(parsedAmount)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Monto inválido. Debe ser un número.",
+      });
+    }
+
+    if (parsedAmount <= 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "El monto debe ser mayor a 0.",
+      });
+    }
+
+    if (typeof category !== "string" || category.trim().length === 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "Categoría inválida. No puede estar vacía.",
+      });
+    }
+
+    if (
+      typeof description !== "string" ||
+      description.trim().length === 0
+    ) {
+      return res.status(400).json({
+        ok: false,
+        error: "Descripción inválida. No puede estar vacía.",
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("expenses")
+      .update({
+        amount: parsedAmount,
+        category: category.trim(),
+        description: description.trim(),
+      })
+      .eq("id", id)
+      .eq("user_id", req.user.id)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        error: "No se pudo actualizar el gasto.",
+        details: error.message,
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({ ok: false, error: "Gasto no encontrado." });
+    }
+
+    return res.status(200).json({ ok: true, data });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      error: "Error inesperado del servidor.",
+      details: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
+
 app.get("/expenses", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -196,6 +278,7 @@ app.get("/expenses", requireAuth, async (req, res) => {
       .order("date", { ascending: false });
 
     if (error) {
+      console.error("GET /expenses supabase error:", error);
       return res.status(500).json({
         ok: false,
         error: "No se pudieron cargar los gastos.",
@@ -206,6 +289,7 @@ app.get("/expenses", requireAuth, async (req, res) => {
     const expenses = Array.isArray(data) ? data : [];
     return res.status(200).json({ ok: true, data: expenses });
   } catch (err) {
+    console.error("GET /expenses unexpected error:", err);
     return res.status(500).json({
       ok: false,
       error: "Error inesperado del servidor.",

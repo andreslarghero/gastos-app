@@ -10,18 +10,34 @@
     <main class="container">
       <header class="header">
         <div class="brand">
-          <div class="brand-mark" aria-hidden="true"></div>
+          <div class="brand-mark" aria-hidden="true">
+            <img
+              id="brandLogo"
+              src="/assets/logo.png"
+              alt=""
+              onerror="this.style.display='none'"
+            />
+          </div>
           <div>
             <h1>Gastos</h1>
             <p class="muted">Ingresá para ver tus gastos</p>
           </div>
         </div>
+        <button
+          id="themeToggleBtn"
+          type="button"
+          class="btn-secondary btn-compact"
+          aria-label="Cambiar tema"
+        >
+          Modo claro
+        </button>
       </header>
 
-      <section class="card auth">
+      <section class="card auth card-auth">
         <div class="auth-grid">
           <div class="auth-col">
             <h2>Iniciar sesión</h2>
+            <p class="section-subtitle muted">Accedé con tu email y contraseña</p>
             <form id="loginForm" class="form form-one">
               <label class="field field-full">
                 <span>Email</span>
@@ -46,6 +62,7 @@
 
           <div class="auth-col">
             <h2>Registrarse</h2>
+            <p class="section-subtitle muted">Creá una cuenta para guardar tus gastos</p>
             <form id="registerForm" class="form form-one">
               <label class="field field-full">
                 <span>Email</span>
@@ -63,6 +80,7 @@
               </label>
               <div class="actions">
                 <button id="registerBtn" type="submit">Registrarse</button>
+                <span id="registerAuthStatus" class="status muted" aria-live="polite"></span>
               </div>
             </form>
           </div>
