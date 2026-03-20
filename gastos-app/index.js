@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const supabase = require("./supabaseClient");
+const { supabaseAdmin, SUPABASE_URL, SUPABASE_ANON_KEY } = require("./supabaseClient");
 
 const app = express();
 app.use(express.json());
@@ -41,6 +42,13 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true });
 });
 
+app.get("/config", (_req, res) => {
+  res.status(200).json({
+    supabaseUrl: SUPABASE_URL || "",
+    supabaseAnonKey: SUPABASE_ANON_KEY || "",
+  });
+});
+
 app.get("/", (_req, res) => {
   res.status(200).sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -57,6 +65,35 @@ app.post("/register", async (req, res) => {
         ok: false,
         error: "La contraseña debe tener al menos 6 caracteres.",
       });
+    }
+
+    if (supabaseAdmin) {
+      const { data: adminData, error: adminError } =
+        await supabaseAdmin.auth.admin.createUser({
+          email: email.trim(),
+          password,
+          email_confirm: true,
+        });
+
+      if (adminError) {
+        return res.status(400).json({
+          ok: false,
+          error: "No se pudo registrar.",
+          details: adminError.message,
+        });
+      }
+
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+      if (signInError) {
+        return res.status(200).json({ ok: true, data: adminData });
+      }
+
+      return res.status(200).json({ ok: true, data: signInData });
     }
 
     const { data, error } = await supabase.auth.signUp({

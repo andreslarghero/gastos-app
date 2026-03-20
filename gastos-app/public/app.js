@@ -1,19 +1,29 @@
-const API_BASE = "http://localhost:3001";
-
-// Configurá estas credenciales (anon key) para Supabase Auth en el navegador.
-// Nota: la anon key es pública por diseño, no uses service_role en frontend.
-const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const API_BASE = window.location.origin;
 
 /** @type {import("@supabase/supabase-js").SupabaseClient | null} */
-const supabase =
-  typeof window !== "undefined" &&
-  window.supabase &&
-  typeof window.supabase.createClient === "function"
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+let supabase = null;
+
+async function initSupabase() {
+  if (supabase) return supabase;
+  try {
+    const res = await fetch(`${API_BASE}/config`);
+    const cfg = await res.json();
+    if (
+      cfg.supabaseUrl &&
+      cfg.supabaseAnonKey &&
+      typeof window !== "undefined" &&
+      window.supabase &&
+      typeof window.supabase.createClient === "function"
+    ) {
+      supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
         auth: { persistSession: true },
-      })
-    : null;
+      });
+    }
+  } catch (_) {
+    /* config not available */
+  }
+  return supabase;
+}
 
 const form = document.getElementById("expenseForm");
 const amountEl = document.getElementById("amount");
@@ -525,26 +535,28 @@ logoutBtn?.addEventListener("click", () => {
 });
 
 // Inicialización
-if (!supabase) {
-  if (isLoginPage()) {
-    setAuthStatus("Falta configurar Supabase en el frontend.", "error");
-  } else {
-    setStatus("Falta configurar Supabase en el frontend.", "error");
-  }
-} else {
-  getSession().then((session) => {
-    const authed = Boolean(session?.access_token);
+initSupabase().then(() => {
+  if (!supabase) {
     if (isLoginPage()) {
-      if (authed) redirectToApp();
-      return;
+      setAuthStatus("Falta configurar Supabase en el frontend.", "error");
+    } else {
+      setStatus("Falta configurar Supabase en el frontend.", "error");
     }
-    if (!authed) {
-      redirectToLogin();
-      return;
-    }
-    setAuthedUI(true);
-    fetchExpenses();
-  });
-}
+  } else {
+    getSession().then((session) => {
+      const authed = Boolean(session?.access_token);
+      if (isLoginPage()) {
+        if (authed) redirectToApp();
+        return;
+      }
+      if (!authed) {
+        redirectToLogin();
+        return;
+      }
+      setAuthedUI(true);
+      fetchExpenses();
+    });
+  }
+});
 
 

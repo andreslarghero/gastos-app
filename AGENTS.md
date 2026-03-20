@@ -44,8 +44,15 @@ The server only throws on missing credentials when `NODE_ENV=production`; in dev
 | `POST /expenses` | Bearer | Create an expense |
 | `DELETE /expenses/:id` | Bearer | Delete an expense |
 
+### Email confirmation bypass
+
+When `SUPABASE_SERVICE_ROLE_KEY` is set in `.env` (or as an environment secret), the `/register` endpoint uses the Supabase Admin API to create users with `email_confirm: true`, bypassing email confirmation entirely. Without the service role key, the original `signUp` flow is used and email confirmation is required.
+
+### Frontend config
+
+The frontend fetches Supabase credentials dynamically from the `GET /config` endpoint at startup, so no hardcoded credentials in `public/app.js` are needed.
+
 ### Gotchas
 
-- The Supabase project has **email confirmation enabled**, so newly registered users cannot log in until their email is confirmed. Without a `SUPABASE_SERVICE_ROLE_KEY`, you cannot programmatically confirm users.
-- The frontend (`public/app.js`) has **hardcoded placeholder** Supabase credentials (`YOUR-PROJECT.supabase.co`). For the frontend auth to work in-browser, those placeholders must be replaced with the real project URL and anon key.
 - No automated tests, linter, or build exist in this repository.
+- The server does not hot-reload; restart it after code changes (`kill` the process and re-run `npm run dev`).
