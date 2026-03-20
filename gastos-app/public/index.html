@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gastos</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <img
+              id="brandLogo"
+              src="/assets/logo.png"
+              alt=""
+              onerror="this.style.display='none'"
+            />
+          </div>
+          <div>
+            <h1>Gastos</h1>
+            <p class="muted">Controla tus gastos con estilo fintech</p>
+          </div>
+        </div>
+        <button
+          id="themeToggleBtn"
+          type="button"
+          class="btn-secondary btn-compact"
+          aria-label="Cambiar tema"
+        >
+          Modo claro
+        </button>
+        <div id="userBar" class="userbar" hidden>
+          <span id="welcomeText" class="userbar-label muted">Bienvenido, usuario</span>
+          <button id="logoutBtn" class="btn-secondary btn-compact" type="button">
+            Cerrar sesión
+          </button>
+        </div>
+      </header>
+      <div id="appSection">
+      <section class="hero card stat-card" aria-labelledby="stat-label">
+        <div id="stat-label" class="hero-label">Total gastado</div>
+        <div id="totalValue" class="hero-value">$0.00</div>
+        <div class="hero-sub muted">
+          Sincronizado con tu cuenta ·
+          <span id="displayCurrencyLabel"></span>
+          <label class="currency-switch" aria-label="Selector de moneda">
+            <select id="displayCurrencySelect" aria-label="Moneda">
+              <option value="UYU">UYU</option>
+              <option value="USD">USD</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="card card-month-summary" aria-labelledby="month-summary-title">
+        <div class="month-summary-head">
+          <h2 id="month-summary-title">Resumen del mes</h2>
+          <p id="monthSummaryPeriod" class="section-subtitle muted month-summary-period"></p>
+          <p class="month-summary-scope muted">
+            Según los gastos visibles (respeta filtros y búsqueda).
+          </p>
+        </div>
+        <div class="month-summary-stats">
+          <div class="month-stat">
+            <span class="month-stat-label">Total este mes</span>
+            <span id="monthSummaryTotal" class="month-stat-value">—</span>
+          </div>
+          <div class="month-stat">
+            <span class="month-stat-label">Gastos registrados</span>
+            <span id="monthSummaryCount" class="month-stat-value">—</span>
+          </div>
+          <div class="month-stat">
+            <span class="month-stat-label">Categoría principal</span>
+            <span id="monthSummaryTopCategory" class="month-stat-value">—</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <section class="card card-chart">
+          <div class="list-header">
+            <div class="list-header-text">
+              <h2>Gastos por categoría</h2>
+              <p class="section-subtitle muted">Vista proporcional por tipo de gasto</p>
+            </div>
+            <button id="refreshBtn" class="btn-secondary btn-iconish" type="button">
+              Actualizar
+            </button>
+          </div>
+          <div class="chart-wrap">
+            <div
+              id="chartSkeleton"
+              class="chart-skeleton"
+              hidden
+              aria-hidden="true"
+            ></div>
+            <canvas id="categoryChart" height="220"></canvas>
+          </div>
+        </section>
+
+        <section class="card card-form">
+          <h2 id="expenseFormTitle">Agregar gasto</h2>
+          <p id="expenseFormSubtitle" class="section-subtitle muted">
+            Registrá un movimiento en segundos
+          </p>
+          <form id="expenseForm" class="form form-expense">
+            <label class="field">
+              <span>Monto</span>
+              <input
+                id="amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="120.50"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span>Categoría</span>
+              <select id="category" name="category" required>
+                <option value="" disabled selected>Elegí una categoría</option>
+                <option value="comida">Comida</option>
+                <option value="transporte">Transporte</option>
+                <option value="entretenimiento">Entretenimiento</option>
+                <option value="otros">Otros</option>
+              </select>
+            </label>
+
+            <label class="field field-full">
+              <span>Descripción</span>
+              <input
+                id="description"
+                name="description"
+                type="text"
+                maxlength="200"
+                placeholder="Ej. comida con amigos"
+                required
+              />
+            </label>
+
+            <div class="actions">
+              <button id="submitBtn" type="submit">Agregar gasto</button>
+              <button
+                id="cancelEditBtn"
+                type="button"
+                class="btn-secondary btn-compact"
+                hidden
+              >
+                Cancelar edición
+              </button>
+              <span id="status" class="status muted" aria-live="polite"></span>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="card card-list">
+        <div class="list-header list-header--solo" id="expensesListHeader">
+          <div class="list-header-text">
+            <h2>Todos los gastos</h2>
+            <p class="section-subtitle muted">
+              Más recientes primero · filtrá por categoría o buscá por descripción
+            </p>
+          </div>
+          <button
+            type="button"
+            id="toggleExpensesPanelBtn"
+            class="btn-secondary btn-compact"
+            aria-expanded="true"
+          >
+            Ocultar
+          </button>
+        </div>
+        <div id="expensesPanel" class="expenses-panel">
+          <div class="filter-bar" id="expenseFilterBar">
+          <label class="filter-field">
+            <span>Ver categoría</span>
+            <select id="expenseFilterCategory" aria-label="Filtrar por categoría">
+              <option value="">Todas</option>
+              <option value="comida">Comida</option>
+              <option value="transporte">Transporte</option>
+              <option value="entretenimiento">Entretenimiento</option>
+              <option value="otros">Otros</option>
+            </select>
+          </label>
+          <label class="filter-field filter-field--grow">
+            <span>Buscar</span>
+            <input
+              id="expenseFilterSearch"
+              type="search"
+              name="expenseFilterSearch"
+              placeholder="Texto en la descripción…"
+              autocomplete="off"
+              aria-label="Buscar en descripción"
+            />
+          </label>
+          <button type="button" id="expenseFilterReset" class="btn-secondary btn-compact">
+            Limpiar
+          </button>
+        </div>
+        <div
+          id="expensesSkeleton"
+          class="expenses-skeleton"
+          hidden
+          aria-hidden="true"
+        >
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+        </div>
+        <ul id="expensesList" class="list" aria-live="polite"></ul>
+        <div id="emptyState" class="empty empty-state muted" hidden>
+          <div class="empty-state-icon" aria-hidden="true"></div>
+          <p id="emptyStateTitle" class="empty-state-title">Todavía no registraste gastos</p>
+          <p id="emptyStateHint" class="empty-state-hint">
+            Usá el formulario de arriba para agregar el primero.
+          </p>
+        </div>
+        </div>
+      </section>
+      </div>
+
+      <div
+        id="onboardingPanel"
+        class="onboarding"
+        hidden
+        aria-live="polite"
+        aria-label="Ayuda para comenzar"
+      >
+        <div class="onboarding-title">Primeros pasos</div>
+        <div class="onboarding-body">
+          <div class="onboarding-item">
+            <span class="onboarding-item-title">1) Agregar gasto</span>
+            <span class="onboarding-item-text"
+              >Completá el formulario y tocá “Agregar gasto”.</span
+            >
+          </div>
+          <div class="onboarding-item">
+            <span class="onboarding-item-title">2) Filtrar y buscar</span>
+            <span class="onboarding-item-text"
+              >Usá la barra “Ver categoría” y el campo “Buscar”.</span
+            >
+          </div>
+          <div class="onboarding-item">
+            <span class="onboarding-item-title">3) Resumen y gráfico</span>
+            <span class="onboarding-item-text"
+              >El total, el gráfico y “Resumen del mes” se actualizan con tus gastos visibles.</span
+            >
+          </div>
+        </div>
+        <div class="onboarding-actions">
+          <button
+            id="onboardingDismissBtn"
+            type="button"
+            class="btn-secondary btn-compact"
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="deleteConfirmModal"
+        class="confirm-modal"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deleteConfirmTitle"
+        aria-describedby="deleteConfirmText"
+      >
+        <div class="confirm-modal-card">
+          <h3 id="deleteConfirmTitle" class="confirm-modal-title">Eliminar gasto</h3>
+          <p id="deleteConfirmText" class="confirm-modal-text">
+            Esta acci&oacute;n es permanente. El gasto se eliminar&aacute; definitivamente.
+          </p>
+          <div class="confirm-modal-actions">
+            <button type="button" id="deleteConfirmCancelBtn" class="btn-secondary btn-compact">
+              Cancelar
+            </button>
+            <button type="button" id="deleteConfirmAcceptBtn" class="btn-compact">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
+

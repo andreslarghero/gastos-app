@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ingresar · Gastos</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <img
+              id="brandLogo"
+              src="/assets/logo.png"
+              alt=""
+              onerror="this.style.display='none'"
+            />
+          </div>
+          <div>
+            <h1>Gastos</h1>
+            <p class="muted">Ingresá para ver tus gastos</p>
+          </div>
+        </div>
+        <button
+          id="themeToggleBtn"
+          type="button"
+          class="btn-secondary btn-compact"
+          aria-label="Cambiar tema"
+        >
+          Modo claro
+        </button>
+      </header>
+
+      <section class="card auth card-auth">
+        <div class="auth-grid">
+          <div class="auth-col">
+            <h2>Iniciar sesión</h2>
+            <p class="section-subtitle muted">Accedé con tu email y contraseña</p>
+            <form id="loginForm" class="form form-one">
+              <label class="field field-full">
+                <span>Email</span>
+                <input id="loginEmail" type="email" autocomplete="email" required />
+              </label>
+              <label class="field field-full">
+                <span>Contraseña</span>
+                <input
+                  id="loginPassword"
+                  type="password"
+                  minlength="6"
+                  autocomplete="current-password"
+                  required
+                />
+              </label>
+              <div class="actions">
+                <button id="loginBtn" type="submit">Iniciar sesión</button>
+                <span id="authStatus" class="status muted" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+
+          <div class="auth-col">
+            <h2>Registrarse</h2>
+            <p class="section-subtitle muted">Creá una cuenta para guardar tus gastos</p>
+            <form id="registerForm" class="form form-one">
+              <label class="field field-full">
+                <span>Email</span>
+                <input id="registerEmail" type="email" autocomplete="email" required />
+              </label>
+              <label class="field field-full">
+                <span>Contraseña</span>
+                <input
+                  id="registerPassword"
+                  type="password"
+                  minlength="6"
+                  autocomplete="new-password"
+                  required
+                />
+              </label>
+              <div class="actions">
+                <button id="registerBtn" type="submit">Registrarse</button>
+                <span id="registerAuthStatus" class="status muted" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
+
