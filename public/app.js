@@ -5,17 +5,16 @@ const API_BASE = String(runtimeConfig.apiBaseUrl || "").trim();
 const MONEY_LOCALE = "es-UY";
 let MONEY_CURRENCY = "UYU";
 
-// Credenciales de Supabase configurables para navegador.
-const SUPABASE_URL = String(runtimeConfig.supabaseUrl || "").trim();
-const SUPABASE_ANON_KEY = String(runtimeConfig.supabaseAnonKey || "").trim();
+const supabaseUrl = "https://wgqawyhgyrbjsidmsdzu.supabase.co";
+const supabaseKey = "sb_publishable_ehvI_i9hjohLeKwByvzOnw_DPahFIsF";
 
 /** @type {import("@supabase/supabase-js").SupabaseClient | null} */
-const supabaseClient =
-  window.supabase?.createClient
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: true },
-      })
-    : null;
+const supabase = window.supabase?.createClient
+  ? window.supabase.createClient(supabaseUrl, supabaseKey)
+  : null;
+
+/** @type {import("@supabase/supabase-js").SupabaseClient | null} */
+const supabaseClient = supabase;
 
 const form = document.getElementById("expenseForm");
 const amountEl = document.getElementById("amount");
@@ -1231,7 +1230,7 @@ registerForm?.addEventListener("submit", async (e) => {
   try {
     if (!supabaseClient) throw new Error("Supabase no está configurado en el frontend.");
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    if (error) throw new Error(error.message);
+    if (error) throw error;
 
     if (data?.session) {
       setAuthStatus("");
@@ -1248,7 +1247,14 @@ registerForm?.addEventListener("submit", async (e) => {
       "success"
     );
   } catch (err) {
-    const message = authErrorMessage(err, "No se pudo registrar. Revisá los datos e intentá de nuevo.");
+    console.error("Registro fallido (Supabase):", err);
+    const exactMessage = String(err?.message || "").trim();
+    const statusRaw = err?.status;
+    const hasStatus = Number.isFinite(Number(statusRaw));
+    const statusSuffix = hasStatus ? ` (HTTP ${Number(statusRaw)})` : "";
+    const message = exactMessage
+      ? `No se pudo registrar: ${exactMessage}${statusSuffix}`
+      : "No se pudo registrar. Revisá los datos e intentá de nuevo.";
     setRegisterAuthStatus(message, "error");
   } finally {
     loginBtn.disabled = false;
