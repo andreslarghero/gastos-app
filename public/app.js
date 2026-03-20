@@ -1,5 +1,10 @@
+console.log("APP JS LOADED");
+document.addEventListener("DOMContentLoaded", () => {
+console.log("DOM READY");
+
 const runtimeConfig = window.__APP_CONFIG__ || {};
 const API_BASE = String(runtimeConfig.apiBaseUrl || "").trim();
+console.info("[debug] app.js cargado");
 
 /** Moneda y locale para importes (presentación). No incluye conversión real. */
 const MONEY_LOCALE = "es-UY";
@@ -9,12 +14,14 @@ const supabaseUrl = "https://wgqawyhgyrbjsidmsdzu.supabase.co";
 const supabaseKey = "sb_publishable_ehvI_i9hjohLeKwByvzOnw_DPahFIsF";
 
 /** @type {import("@supabase/supabase-js").SupabaseClient | null} */
-const supabase = window.supabase?.createClient
-  ? window.supabase.createClient(supabaseUrl, supabaseKey)
-  : null;
-
-/** @type {import("@supabase/supabase-js").SupabaseClient | null} */
-const supabaseClient = supabase;
+const supabaseClient =
+  window.supabase?.createClient != null
+    ? window.supabase.createClient(supabaseUrl, supabaseKey)
+    : null;
+window.supabaseClient = supabaseClient;
+if (!supabaseClient) {
+  console.error("[debug] Supabase CDN no disponible; no se pudo inicializar supabaseClient.");
+}
 
 const form = document.getElementById("expenseForm");
 const amountEl = document.getElementById("amount");
@@ -375,7 +382,13 @@ function authErrorMessage(errorLike, fallbackMessage) {
 }
 
 function hasSession(session) {
-  return Boolean(session?.access_token);
+  if (!session?.access_token) return false;
+  const expiresAt = Number(session?.expires_at || 0);
+  if (Number.isFinite(expiresAt) && expiresAt > 0) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (expiresAt <= nowSec) return false;
+  }
+  return true;
 }
 
 function onAuthedAppPage() {
@@ -385,11 +398,13 @@ function onAuthedAppPage() {
 }
 
 function onUnauthedAppPage() {
+  setAuthedUI(false);
   redirectToLogin();
 }
 
-function handleSessionForCurrentPage(session) {
+function handleSessionForCurrentPage(session, source = "unknown") {
   const authed = hasSession(session);
+  console.info(`[auth] ${source}: ${authed ? "sesión válida" : "sin sesión válida"}`);
 
   if (isLoginPage()) {
     if (authed) redirectToApp();
@@ -402,6 +417,23 @@ function handleSessionForCurrentPage(session) {
   }
 
   onAuthedAppPage();
+}
+
+async function bootstrapAuthFlow() {
+  if (!supabaseClient) return;
+  try {
+    const session = await getSession();
+    handleSessionForCurrentPage(session, "bootstrap");
+  } catch (err) {
+    console.error("[auth] Error al comprobar sesión inicial:", err);
+    if (isLoginPage()) {
+      setAuthStatus("No se pudo comprobar la sesión. Probá recargar la página.", "error");
+      setRegisterAuthStatus("No se pudo comprobar la sesión. Probá recargar la página.", "error");
+    } else {
+      setStatus("No se pudo comprobar la sesión. Probá recargar la página.", "error");
+      redirectToLogin();
+    }
+  }
 }
 
 function setAuthedUI(isAuthed) {
@@ -974,9 +1006,14 @@ async function updateExpense(id, { amount, category, description }) {
   return body.data;
 }
 
-form?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  setStatus("");
+if (form) {
+  console.log("Expense form found");
+  console.info("[debug] expense form listener attached");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    console.log("Expense form submitted");
+    console.info("[debug] expense form submitted");
+    setStatus("");
 
   const amountRaw = amountEl.value;
   const category = categoryEl.value.trim();
@@ -1021,7 +1058,8 @@ form?.addEventListener("submit", async (e) => {
     refreshBtn.disabled = false;
     if (cancelEditBtn) cancelEditBtn.disabled = false;
   }
-});
+  });
+}
 
 cancelEditBtn?.addEventListener("click", () => {
   clearExpenseEditMode();
@@ -1171,10 +1209,14 @@ document.addEventListener("keydown", (e) => {
   closeDeleteConfirmModal(false);
 });
 
-loginForm?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  setAuthStatus("");
-  setRegisterAuthStatus("");
+if (loginForm) {
+  console.info("[debug] login form listener attached");
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    console.log("Login submit triggered");
+    console.info("[debug] login form submitted");
+    setAuthStatus("");
+    setRegisterAuthStatus("");
 
   const email = String(loginEmailEl?.value || "").trim();
   const password = String(loginPasswordEl?.value || "");
@@ -1199,22 +1241,29 @@ loginForm?.addEventListener("submit", async (e) => {
     if (!data?.session) {
       throw new Error("No se recibió sesión. Revisá si tu cuenta requiere confirmar el email.");
     }
+    console.info("[auth] Inicio de sesión exitoso.");
     setAuthStatus("Inicio de sesión correcto. Redirigiendo…", "success");
     setRegisterAuthStatus("");
     redirectToApp();
   } catch (err) {
+    console.warn("[auth] Falló inicio de sesión:", err);
     const message = authErrorMessage(err, "No se pudo iniciar sesión. Verificá tus datos.");
     setAuthStatus(message, "error");
   } finally {
     loginBtn.disabled = false;
     registerBtn.disabled = false;
   }
-});
+  });
+}
 
-registerForm?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  setAuthStatus("");
-  setRegisterAuthStatus("");
+if (registerForm) {
+  console.info("[debug] register form listener attached");
+  registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    console.log("Register submit triggered");
+    console.info("[debug] register form submitted");
+    setAuthStatus("");
+    setRegisterAuthStatus("");
 
   const email = String(registerEmailEl?.value || "").trim();
   const password = String(registerPasswordEl?.value || "");
@@ -1233,6 +1282,7 @@ registerForm?.addEventListener("submit", async (e) => {
     if (error) throw error;
 
     if (data?.session) {
+      console.info("[auth] Registro exitoso con sesión activa.");
       setAuthStatus("");
       setRegisterAuthStatus("Cuenta creada correctamente. Redirigiendo…", "success");
       redirectToApp();
@@ -1247,6 +1297,7 @@ registerForm?.addEventListener("submit", async (e) => {
       "success"
     );
   } catch (err) {
+    console.warn("[auth] Falló registro:", err);
     console.error("Registro fallido (Supabase):", err);
     const exactMessage = String(err?.message || "").trim();
     const statusRaw = err?.status;
@@ -1260,20 +1311,26 @@ registerForm?.addEventListener("submit", async (e) => {
     loginBtn.disabled = false;
     registerBtn.disabled = false;
   }
-});
+  });
+}
 
-logoutBtn?.addEventListener("click", () => {
-  if (!supabaseClient) {
-    redirectToLogin();
-    return;
-  }
-  supabaseClient.auth
-    .signOut({ scope: "global" })
-    .catch(() => {})
-    .finally(() => {
-      redirectToLogin();
-    });
-});
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    console.log("Logout clicked");
+    console.info("[debug] logout clicked");
+    try {
+      console.info("[auth] Cerrando sesión…");
+      await window.supabaseClient.auth.signOut();
+      expensesCache = [];
+      clearExpenseEditMode();
+      setAuthedUI(false);
+      console.info("[auth] Sesión cerrada correctamente.");
+      window.location.href = "/login.html";
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  });
+}
 
 // Theme toggle (light/dark) - presentación solamente (persistido en localStorage).
 const initialTheme = (() => {
@@ -1354,23 +1411,21 @@ if (!supabaseClient) {
     setStatus("Falta configurar Supabase en el frontend.", "error");
   }
 } else {
-  getSession()
-    .then((session) => {
-      handleSessionForCurrentPage(session);
-    })
-    .catch((err) => {
-      console.error("getSession inicial:", err);
-      if (isLoginPage()) {
-        setAuthStatus("No se pudo comprobar la sesión. Probá recargar la página.", "error");
-        setRegisterAuthStatus("No se pudo comprobar la sesión. Probá recargar la página.", "error");
-      } else {
-        setStatus("No se pudo comprobar la sesión. Probá recargar la página.", "error");
-      }
-    });
+  if (!isLoginPage()) {
+    // Evita mostrar contenido protegido antes de validar sesión.
+    setAuthedUI(false);
+  }
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
-    handleSessionForCurrentPage(session || null);
+  bootstrapAuthFlow();
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      console.info("[auth] Evento SIGNED_OUT recibido.");
+    } else if (event === "SIGNED_IN") {
+      console.info("[auth] Evento SIGNED_IN recibido.");
+    }
+    handleSessionForCurrentPage(session || null, `onAuthStateChange:${event}`);
   });
 }
 
-
+});
